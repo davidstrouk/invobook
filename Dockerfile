@@ -32,8 +32,11 @@ COPY --chown=www-data:www-data . /var/www/html
 RUN git config --global --add safe.directory /var/www/html
 ENV COMPOSER_ALLOW_SUPERUSER=1
 
-# Install PHP dependencies
-RUN composer install --optimize-autoloader --no-dev
+# Install PHP dependencies  
+RUN composer install --optimize-autoloader --no-dev --no-scripts
+
+# Generate optimized autoload without running post-scripts
+RUN composer dump-autoload --optimize --no-scripts
 
 # Install Node dependencies and build assets
 RUN npm install && npm run build
@@ -55,4 +58,10 @@ RUN chown -R www-data:www-data /var/www/html \
 
 EXPOSE 8080
 
-CMD ["apache2-foreground"]
+# Create startup script
+RUN echo '#!/bin/bash' > /usr/local/bin/start.sh && \
+    echo 'php artisan migrate --force || true' >> /usr/local/bin/start.sh && \
+    echo 'exec apache2-foreground' >> /usr/local/bin/start.sh && \
+    chmod +x /usr/local/bin/start.sh
+
+CMD ["/usr/local/bin/start.sh"]
