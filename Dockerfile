@@ -1,4 +1,4 @@
-FROM php:8.2-apache
+FROM php:8.3-apache
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
@@ -8,12 +8,13 @@ RUN apt-get update && apt-get install -y \
     libonig-dev \
     libxml2-dev \
     libpq-dev \
+    libicu-dev \
     zip \
     unzip \
     nodejs \
     npm \
     libzip-dev \
-    && docker-php-ext-install pdo_pgsql pgsql mbstring exif pcntl bcmath gd zip
+    && docker-php-ext-install pdo_pgsql pgsql mbstring exif pcntl bcmath gd zip intl
 
 # Get latest Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
@@ -26,6 +27,10 @@ COPY . /var/www/html
 
 # Copy existing application directory permissions
 COPY --chown=www-data:www-data . /var/www/html
+
+# Fix git ownership issue and allow composer superuser
+RUN git config --global --add safe.directory /var/www/html
+ENV COMPOSER_ALLOW_SUPERUSER=1
 
 # Install PHP dependencies
 RUN composer install --optimize-autoloader --no-dev
